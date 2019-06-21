@@ -7,40 +7,50 @@ use App\Task;
 
 class TasksController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
+     //タスク一覧画面
     public function index()
     {
-        //読み込んだレコードを渡して画面を表示
-        $tasks = Task::all();
-        return view('tasks.index', [
-            'tasks' => $tasks,
-        ]);
+        // 読み込んだレコードを渡して画面を表示
+        // $tasks = Task::all();
+        // return view('tasks.index', [
+        //     'tasks' => $tasks,
+        // ]);
+            $data = [];
+            if (\Auth::check()) 
+            {
+                $user = \Auth::user();
+                //     $tasks = $user->tasks()->orderBy('created_at', 'desc')->paginate(10);
+                    
+                // }
+                // $tasks = Task::all();
+                // $tasks = $user->Task::all();
+                $tasks = $user->tasks()->get();
+                $data = [
+                    'tasks' => $tasks,
+                    'user' => $user,
+                ];
+                //dd($data);
+                return view('tasks.index', $data);
+            }
+            else
+            return view('welcome', $data);
+        // return view('welcome', $data);
+        
     }
 
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
+     //新規登録フォーム画面
     public function create()
     {
         //新規登録の入れ物となるTaskインスタンスを生成し画面表示
-        $task = new Task;
-        return view('tasks.create', [
-            'task' => $task,
-        ]);
+        if (\Auth::check()) {
+            $task = new Task;
+            return view('tasks.create', [
+                'task' => $task,
+            ]);
+        }
     }
 
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
+     //新規登録処理
     public function store(Request $request)
     {
         //requestを保存するだけ
@@ -49,49 +59,46 @@ class TasksController extends Controller
             'status' => 'required|max:10',
         ]);
         
-        $task = new Task;
-        $task->content = $request->content;
-        $task->status = $request->status;
-        $task->save();
+        // $task = new Task;
+        // $task->content = $request->content;
+        // $task->status = $request->status;
+        // $task->save();
+        
+        $request->user()->tasks()->create([
+            'content' => $request->content,
+            'status' => $request->status,
+        ]);
+        
         return redirect('/');
     }
 
-    /**
-     * Display the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
+     //詳細画面表示
     public function show($id)
     {
         $task = Task::find($id);
-        return view('tasks.show', [
-            'task' => $task,
-        ]);
+        
+        if (\Auth::id() === $task->user_id) {
+            return view('tasks.show', [
+                'task' => $task,
+            ]);
+        }
+        return redirect('/');
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
+     //更新フォーム画面表示
     public function edit($id)
     {
         $task = Task::find($id);
 
-        return view('tasks.edit', [
-            'task' => $task,
-        ]);
+        if (\Auth::id() === $task->user_id) {
+            return view('tasks.edit', [
+                'task' => $task,
+            ]);
+        }
+        return redirect('/');
     }
 
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
+     //更新処理
     public function update(Request $request, $id)
     {
         $this->validate($request, [
@@ -100,23 +107,26 @@ class TasksController extends Controller
         ]);
         
         $task = Task::find($id);
-        $task->content = $request->content;
-        $task->status = $request->status;
-        $task->save();
+        if (\Auth::id() === $task->user_id) {
+            $task->content = $request->content;
+            $task->status = $request->status;
+            $task->save();
+        }
+        // $request->user()->tasks()->create([
+        //     'content' => $request->content,
+        //     'status' => $status->status,
+        // ]);
 
         return redirect('/');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
     public function destroy($id)
     {
         $task = Task::find($id);
-        $task->delete();
+        
+        if (\Auth::id() === $task->user_id) {
+            $task->delete();
+        }
 
         return redirect('/');
     }
